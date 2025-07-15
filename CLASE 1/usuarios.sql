@@ -39,38 +39,38 @@ SELECT nombre, telefono FROM usuarios WHERE marca IN ('LG','SAMSUNG','MOTOROLA')
 
 -- CONSULTAS BLOQUE 2
 -- 1.	Listar nombre y teléfono de los usuarios con teléfono que no sea de la marca LG o SAMSUNG
-
+SELECT nombre, telefono, marca FROM usuarios WHERE marca NOT IN ('LG','SAMSUNG');
 
 -- 2.	Listar el login y teléfono de los usuarios con compañia telefónica IUSACELL
-
+SELECT usuario, telefono FROM usuarios WHERE compañia = 'IUSACELL';
 
 -- 3.	Listar el login y teléfono de los usuarios con compañia telefónica que no sea TELCEL
-
+SELECT usuario, telefono, compañia FROM usuarios WHERE compañia <> 'TELCEL';
 
 -- 4.	Calcular el saldo promedio de los usuarios que tienen teléfono marca NOKIA
-
+SELECT AVG(saldo) as SaldoPromedio FROM usuarios WHERE marca = 'NOKIA';
 
 -- 5.	Listar el login y teléfono de los usuarios con compañia telefónica IUSACELL o AXEL
-
+SELECT usuario, telefono FROM usuarios WHERE compañia IN ('IUSACELL','AXEL');
 
 -- 6.	Mostrar el email de los usuarios que no usan yahoo
-
+SELECT email FROM usuarios WHERE email NOT LIKE '%yahoo%';
 
 -- 7.	Listar el login y teléfono de los usuarios con compañia telefónica que no sea TELCEL o IUSACELL
-
+SELECT usuario, telefono FROM usuarios WHERE compañia NOT IN ('TELCEL','IUSACELL');
 
 -- 8.	Listar el login y teléfono de los usuarios con compañia telefónica UNEFON
-
+SELECT usuario, telefono FROM usuarios WHERE compañia = 'UNEFON';
 
 -- 9.	Listar las diferentes marcas de celular en orden alfabético descendentemente
-
+SELECT DISTINCT marca FROM usuarios ORDER BY marca DESC;
 
 -- 10.	Listar las diferentes compañias en orden alfabético aleatorio
-
+SELECT DISTINCT compañia FROM usuarios ORDER BY RAND();
 
 -- 11.	Listar el login de los usuarios con nivel 0 o 2
-
+SELECT usuario FROM usuarios WHERE nivel IN (0,2);
 
 -- 12.	Calcular el saldo promedio de los usuarios que tienen teléfono marca LG
-
+SELECT AVG(saldo) as SaldoPromedioLG FROM usuarios WHERE marca = 'LG';
 
