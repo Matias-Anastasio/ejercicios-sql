@@ -1,3 +1,4 @@
+USE pruebas;
 SELECT * FROM usuarios;
 
 -- CONSULTAS BLOQUE 1
@@ -11,7 +12,7 @@ SELECT MAX(saldo) AS SaldoMaximo FROM usuarios WHERE sexo = 'M';
 SELECT nombre, telefono FROM usuarios WHERE marca IN ('NOKIA','BLACKBERRY','SONY');
 
 -- 4.	Contar los usuarios sin saldo o inactivos
-SELECT COUNT(*) FROM usuarios WHERE saldo = 0 OR activo = 0;
+SELECT COUNT(*) FROM usuarios WHERE saldo = 0 OR activo = FALSE;
 
 -- 5.	Listar el login de los usuarios con nivel 1,2 o 3
 SELECT usuario FROM usuarios WHERE nivel IN (1 , 2, 3);
@@ -74,3 +75,39 @@ SELECT usuario FROM usuarios WHERE nivel IN (0,2);
 -- 12.	Calcular el saldo promedio de los usuarios que tienen teléfono marca LG
 SELECT AVG(saldo) as SaldoPromedioLG FROM usuarios WHERE marca = 'LG';
 
+-- CONSULTAS BLOQUE 3
+-- 1.	Listar el login de los usuarios con nivel 1 o 3
+SELECT usuario FROM usuarios WHERE nivel IN (1,3);
+
+-- 2.	Listar nombre y teléfono de los usuarios con teléfono que no sea de la marca BLACKBERRY
+SELECT nombre, telefono FROM usuarios WHERE marca<>'BLACKBERRY';
+
+-- 3.	Listar el login de los usuarios con nivel 3
+SELECT usuario FROM usuarios WHERE nivel=3;
+
+-- 4.	Listar el login de los usuarios con nivel 0
+SELECT usuario FROM usuarios WHERE nivel=0;
+
+-- 5.	Listar el login de los usuarios con nivel 1
+SELECT usuario FROM usuarios WHERE nivel=1;
+
+-- 6.	Contar el número de usuarios por sexo
+SELECT sexo, COUNT(*) as cantidad FROM usuarios GROUP BY sexo;
+
+-- 7.	Listar el login y teléfono de los usuarios con compañia telefónica AT&T
+SELECT usuario, telefono FROM usuarios WHERE compañia='AT&T';
+
+-- 8.	Listar las diferentes compañias en orden alfabético descendentemente
+SELECT DISTINCT compañia FROM usuarios ORDER BY compañia DESC;
+
+-- 9.	Listar el logn de los usuarios inactivos
+SELECT usuario FROM usuarios WHERE activo=FALSE;
+
+-- 10.	Listar los números de teléfono sin saldo
+SELECT telefono FROM usuarios WHERE saldo=0;
+
+-- 11.	Calcular el saldo mínimo de los usuarios de sexo “Hombre”
+SELECT MIN(saldo) as SaldoMinimoHombres FROM usuarios WHERE sexo='H';
+
+-- 12.	Listar los números de teléfono con saldo mayor a 300
+SELECT telefono FROM usuarios WHERE saldo>300;
