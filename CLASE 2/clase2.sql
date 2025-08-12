@@ -180,3 +180,4 @@ SELECT DISTINCT a.email
   JOIN profesores AS p 
     ON a.email = p.email
  WHERE a.email IS NOT NULL;
+ 
