@@ -93,3 +93,184 @@ SELECT * FROM vista_empleados_departamentos;
 UPDATE vista_empleados_departamentos SET salario=salario*1.1;
 
 -- ------------------------------------------------------------------------------------------------
+
+DELIMITER //
+CREATE PROCEDURE insertar_empleado(
+	IN p_nombre VARCHAR(50),
+    IN p_apellido VARCHAR(50),
+    IN p_salario DECIMAL(10,2)
+)
+BEGIN
+	INSERT INTO empleados (nombre,apellido,salario)
+    VALUES (p_nombre,p_apellido,p_salario);
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE aumentar_salario(
+	IN p_id_empleado INT,
+	IN p_porcentaje DECIMAL
+)
+BEGIN
+	UPDATE empleados SET salario=salario*(1 + p_porcentaje/100) WHERE id_empleado=p_id_empleado;
+END //
+DELIMITER ;
+
+SELECT * FROM empleados WHERE id_empleado=1;
+CALL aumentar_salario(1,50);
+
+DELIMITER //
+CREATE PROCEDURE eliminar_empleado(
+	IN p_id_empleado INT
+)
+BEGIN
+	DELETE FROM empleados WHERE id_empleado=p_id_empleado;
+END //
+DELIMITER ;
+
+CALL eliminar_empleado(4);
+
+DELIMITER //
+CREATE PROCEDURE total_empleados_por_departamento(
+	IN p_id_departamento INT
+)
+BEGIN
+	SELECT d.nombre_departamento, count(*) FROM empleados e INNER JOIN departamentos d USING(id_departamento) WHERE id_departamento=p_id_departamento GROUP BY id_departamento;
+END //
+DELIMITER ;
+
+DROP PROCEDURE total_empleados_por_departamento;
+
+CALL total_empleados_por_departamento(2);
+
+DELIMITER //
+CREATE PROCEDURE mostrar_salario_promedio()
+BEGIN
+	SELECT avg(salario) as salario_promedio FROM empleados;
+END //
+DELIMITER ;
+
+CALL mostrar_salario_promedio();
+
+DELIMITER //
+CREATE PROCEDURE empleados_recientes(
+	IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE
+)
+BEGIN
+	SELECT nombre,apellido,fecha_contratacion FROM 	empleados WHERE fecha_contratacion BETWEEN p_fecha_inicio AND p_fecha_fin;
+END //
+DELIMITER ;
+
+CALL empleados_recientes('2020-01-01','2021-12-31');
+
+DROP PROCEDURE insertar_empleado;
+
+DELIMITER //
+CREATE PROCEDURE insertar_empleado(
+	IN p_nombre VARCHAR(50),
+    IN p_apellido VARCHAR(50),
+    IN p_salario DECIMAL(10,2),
+    IN p_id_departamento INT
+)
+BEGIN
+	IF p_salario <= 1000.00 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'salario debe ser > 1000.00';
+	END IF;
+
+	INSERT INTO empleados (nombre,apellido,salario,email,fecha_contratacion,id_departamento)
+    VALUES (p_nombre,p_apellido,p_salario,concat(p_nombre,p_apellido,'@empresa.com'),curdate(),p_id_departamento);
+END//
+DELIMITER ;
+
+CALL insertar_empleado('matias','anastasio',400000,3);
+
+DROP PROCEDURE eliminar_empleado;
+
+-- ---------------------------------------------------------------------------------------------------------
+
+DELIMITER //
+CREATE FUNCTION calcular_impuesto(salario DECIMAL(10,2)) RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+	RETURN salario * 0.21;
+END; //
+DELIMITER ;
+
+SELECT calcular_impuesto(200000) AS impuesto;
+
+DELIMITER //
+CREATE FUNCTION obtener_nombre_completo(f_id_empleado INT) RETURNS VARCHAR(100)
+DETERMINISTIC
+BEGIN
+	DECLARE nombre_completo VARCHAR(100);
+	SELECT concat(nombre,' ',apellido) INTO nombre_completo FROM empleados WHERE id_empleado= f_id_empleado;
+    RETURN nombre_completo;
+END;//
+DELIMITER ;
+
+SELECT obtener_nombre_completo(5) AS nombre_completo;
+
+DELIMITER //
+CREATE FUNCTION empleado_mas_antiguo() RETURNS INT
+DETERMINISTIC
+BEGIN
+	DECLARE empleado_antiguo INT;
+    SELECT id_empleado INTO empleado_antiguo FROM empleados WHERE fecha_contratacion=(SELECT MIN(fecha_contratacion) FROM empleados);
+    RETURN empleado_antiguo;
+END;//
+DELIMITER ;
+
+DROP FUNCTION contar_empleados_por_departamento;
+
+SELECT * FROM empleados WHERE id_empleado=empleado_mas_antiguo();
+
+DELIMITER //
+CREATE FUNCTION contar_empleados_por_departamento(f_id_departamento INT) RETURNS INT
+DETERMINISTIC
+BEGIN
+	DECLARE cant_empleados INT;
+    SELECT count(*) INTO cant_empleados FROM empleados WHERE id_departamento=f_id_departamento;
+    RETURN cant_empleados;
+END;//
+DELIMITER ;
+
+SELECT contar_empleados_por_departamento(3) AS empleados_por_departamento;
+
+DELIMITER //
+CREATE FUNCTION bono_anual(salario DECIMAL) RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+	RETURN salario*0.1;
+END; //
+DELIMITER ;
+
+SELECT bono_anual(5000) AS bono_anual; 
+
+DELIMITER //
+CREATE FUNCTION salario_total(f_id_empleado INT) RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+	DECLARE salario_base DECIMAL(10,2);
+    SELECT salario INTO salario_base FROM empleados WHERE id_empleado= f_id_empleado;
+    RETURN salario_base + bono_anual(salario_base) + calcular_impuesto(salario_base);
+END;//
+DELIMITER ;
+
+DROP FUNCTION salario_total;
+
+SELECT salario_total(1);
+
+DELIMITER //
+CREATE FUNCTION aumentar_salario(f_id_empleado INT) RETURNS DECIMAL(10,2)
+DETERMINISTIC
+BEGIN
+	DECLARE salario_actualizado DECIMAL(10,2);
+	UPDATE empleados SET salario=salario*1.1 WHERE id_empleado=f_id_empleado;
+    SELECT salario INTO salario_actualizado FROM empleados WHERE id_empleado=f_id_empleado;
+    RETURN salario_actualizado;
+END;//
+DELIMITER ;
+
+SELECT aumentar_salario(12) as salario_actualizado;
