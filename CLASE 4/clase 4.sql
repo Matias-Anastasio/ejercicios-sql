@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS empleados(
     FOREIGN KEY (id_departamento) REFERENCES departamentos(id_departamento)
 );
 
+ALTER TABLE empleados MODIFY COLUMN fecha_contratacion DATE DEFAULT (CURRENT_DATE);
+
 CREATE TABLE IF NOT EXISTS departamentos(
 	id_departamento INT PRIMARY KEY AUTO_INCREMENT,
     nombre_departamento VARCHAR(50) NOT NULL
@@ -274,3 +276,138 @@ END;//
 DELIMITER ;
 
 SELECT aumentar_salario(12) as salario_actualizado;
+
+-- ---------------------------------------------------------------------------------------------------------------------------
+
+DELIMITER //
+CREATE TRIGGER before_insert_empleado
+BEFORE INSERT ON empleados
+FOR EACH ROW
+BEGIN
+	IF NEW.salario < 1000 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'El sueldo debe ser mayor a 1000';
+	END IF;
+END;//
+DELIMITER ;
+
+INSERT INTO empleados(nombre,apellido,email,salario,id_departamento) VALUE ('matias','anastasio','emaildeprueba@empresa.com',500,2);
+
+CREATE TABLE auditoria_empleados (
+    id_auditoria INT AUTO_INCREMENT PRIMARY KEY,
+    id_empleado INT NOT NULL,
+    nombre VARCHAR(50) NOT NULL,
+    apellido VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    fecha_contratacion DATE,
+    salario DECIMAL(10,2) NOT NULL,
+    id_departamento INT NOT NULL,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER //
+CREATE TRIGGER after_insert_empleado
+AFTER INSERT ON empleados
+FOR EACH ROW
+BEGIN
+	INSERT INTO auditoria_empleados(id_empleado,nombre,apellido,email,fecha_contratacion,salario,id_departamento)
+    VALUES (NEW.id_empleado,NEW.nombre,NEW.apellido,NEW.email,NEW.fecha_contratacion,NEW.salario,NEW.id_departamento);
+END;//
+DELIMITER ;
+
+INSERT INTO empleados(nombre,apellido,email,salario,id_departamento) VALUE ('matias','anastasio','emaildeprueba2@empresa.com',5000,2);
+SELECT * FROM auditoria_empleados;
+
+DELIMITER //
+CREATE TRIGGER before_update_salario
+BEFORE UPDATE ON empleados
+FOR EACH ROW
+BEGIN
+	DECLARE salario_anterior DECIMAL(10,2);
+    SELECT salario INTO salario_anterior FROM empleados WHERE id_empleado=OLD.id_empleado;
+    IF salario_anterior>NEW.salario THEN
+		SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'No se permiten reducciones salariales';
+	END IF;
+END; //
+DELIMITER ;
+
+UPDATE empleados SET salario=5000 WHERE id_empleado=16;
+
+CREATE TABLE empleados_eliminados (
+    id_empleado INT,
+    nombre VARCHAR(50) NOT NULL,
+    apellido VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    fecha_contratacion DATE,
+    salario DECIMAL(10,2) NOT NULL,
+    id_departamento INT NOT NULL,
+    fecha_eliminacion DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER //
+CREATE TRIGGER after_delete_empleado
+AFTER DELETE ON empleados
+FOR EACH ROW
+BEGIN
+	INSERT INTO empleados_eliminados(id_empleado,nombre,apellido,email,fecha_contratacion,salario,id_departamento)
+    VALUE(OLD.id_empleado,OLD.nombre,OLD.apellido,OLD.email,OLD.fecha_contratacion,OLD.salario,OLD.id_departamento);
+END; //
+DELIMITER ;
+
+DELETE FROM empleados WHERE id_empleado=16;
+SELECT * FROM empleados_eliminados;
+
+DELIMITER //
+CREATE TRIGGER before_insert_departamento
+BEFORE INSERT ON departamentos
+FOR EACH ROW
+BEGIN
+	DECLARE existe_nombre TINYINT;
+	SELECT EXISTS(SELECT 1 FROM departamentos WHERE nombre_departamento = NEW.nombre_departamento) INTO existe_nombre;
+    IF existe_nombre = 1 THEN
+		SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El departamento ingresado ya existe';
+	END IF;
+END; //
+DELIMITER ;
+
+SELECT * FROM departamentos;
+INSERT INTO departamentos(nombre_departamento) VALUE ('RRHH');
+
+CREATE TABLE auditoria_departamentos(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    id_departamento INT NOT NULL,
+    cambio VARCHAR(255) NOT NULL
+);
+
+DELIMITER //
+CREATE TRIGGER after_update_departamento
+AFTER UPDATE ON departamentos
+FOR EACH ROW
+BEGIN
+	INSERT INTO auditoria_departamentos(id_departamento,cambio)
+    VALUE(OLD.id_departamento, concat('Cambio de: "',OLD.nombre_departamento,'" a: "',NEW.nombre_departamento,'"'));
+END;//
+DELIMITER ;
+
+UPDATE departamentos SET nombre_departamento='RRHH' WHERE id_departamento=1;
+SELECT * FROM auditoria_departamentos;
+
+-- ---------------------------------------------------------------------------------------------------------------------------
+
+SELECT nombre, apellido, salario FROM empleados WHERE salario=(SELECT max(salario) FROM empleados);
+
+SELECT e.nombre,e.apellido,e.salario,d.nombre_departamento FROM empleados e INNER JOIN departamentos d USING(id_departamento);
+
+SELECT e.nombre,e.apellido FROM empleados e LEFT JOIN departamentos d USING(id_departamento) WHERE id_departamento IS NULL;
+
+SELECT nombre, apellido, salario FROM empleados WHERE salario>(SELECT avg(salario) FROM empleados);
+
+SELECT nombre, apellido, salario FROM empleados WHERE salario>(SELECT avg(e.salario) FROM empleados e WHERE id_departamento=e.id_departamento);
+
+SELECT avg(salario) FROM empleados GROUP BY id_departamento;
+
+SELECT d.nombre_departamento,count(*) AS cantidad_empleados FROM empleados e INNER JOIN departamentos d USING(id_departamento) GROUP BY d.nombre_departamento ORDER BY cantidad_empleados DESC LIMIT 3;
+
+SELECT e.nombre,e.apellido FROM empleados e JOIN (SELECT apellido from empleados GROUP BY apellido HAVING count(*)>1) repetidos ON e.apellido = repetidos.apellido ORDER BY e.apellido, e.nombre;
